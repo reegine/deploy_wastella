@@ -24,13 +24,16 @@ CSRF_TRUSTED_ORIGINS = ["https://deploywastella-production.up.railway.app"]
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-b_)-m-vhdgocv2^$&46lu*3gp)*nzp*h^f8ig06d)fb*)vwbcq')
-# SECRET_KEY = 'django-insecure-b_)-m-vhdgocv2^$&46lu*3gp)*nzp*h^f8ig06d)fb*)vwbcq'
+# SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-b_)-m-vhdgocv2^$&46lu*3gp)*nzp*h^f8ig06d)fb*)vwbcq')
+SECRET_KEY = 'django-insecure-b_)-m-vhdgocv2^$&46lu*3gp)*nzp*h^f8ig06d)fb*)vwbcq'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv('DEBUG', 'True') == 'True'
+# DEBUG = os.getenv('DEBUG', 'True') == 'True'
+DEBUG = False
 
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '*').split(',')
+# ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '*').split(',')
+ALLOWED_HOSTS = ['*'] 
+
 
 # CORS
 CORS_ALLOW_ALL_ORIGINS = True  # Allow all origins (you can restrict this later for production)
@@ -163,8 +166,12 @@ EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', 'mimintheresa@gmail.com')
-EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', 'zehs hxim zwub duhn')
+# EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', 'mimintheresa@gmail.com')
+# EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', 'zehs hxim zwub duhn')
+EMAIL_HOST_USER = 'mimintheresa@gmail.com'  # Replace with your email
+EMAIL_HOST_PASSWORD = 'zehs hxim zwub duhn'  # Replace with your email password
+
+
 
 # Djoser settings
 DJOSER = {
@@ -181,10 +188,19 @@ DJOSER = {
 AUTH_USER_MODEL = 'api.User'
 
 # Celery settings for Redis
+# CELERY_BROKER_URL = os.getenv(
+#     "REDIS_URL",
+#     "rediss://:AUXTAAIjcDFjMGFhOTY2YTE2MjM0NjIzODUyYzNlY2FjOTYwYzc2ZXAxMA@subtle-condor-17875.upstash.io:6379"
+# )
+# CELERY_BROKER_URL = 'redis://localhost:6379/0'  # Use Redis as the broker
 CELERY_BROKER_URL = os.getenv(
     "REDIS_URL",
     "rediss://:AUXTAAIjcDFjMGFhOTY2YTE2MjM0NjIzODUyYzNlY2FjOTYwYzc2ZXAxMA@subtle-condor-17875.upstash.io:6379"
-)
+)  # Use Upstash's Redis URL if available
+
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'UTC'
+
+
+# rediss://:AUXTAAIjcDFjMGFhOTY2YTE2MjM0NjIzODUyYzNlY2FjOTYwYzc2ZXAxMA@subtle-condor-17875.upstash.io:6379 from thsi url https://console.upstash.com/redis/9f0617aa-b14f-45ac-bfe7-d73bd2a981bf?teamid=0

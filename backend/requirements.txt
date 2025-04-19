@@ -52,3 +52,4 @@ tzdata==2025.1  # Required (used in settings.py)
 urllib3==2.3.0  # Required by requests (used in your project)
 vine==5.1.0  # Required for Celery (used in your project)
 whitenoise==6.9.0  # Required (used in settings.py)
+gunicorn

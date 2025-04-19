@@ -25,6 +25,7 @@ CSRF_TRUSTED_ORIGINS = ["https://deploywastella-production.up.railway.app"]
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-b_)-m-vhdgocv2^$&46lu*3gp)*nzp*h^f8ig06d)fb*)vwbcq')
+# SECRET_KEY = 'django-insecure-b_)-m-vhdgocv2^$&46lu*3gp)*nzp*h^f8ig06d)fb*)vwbcq'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'True') == 'True'

@@ -9,10 +9,6 @@ asttokens==3.0.0
 async-lru==2.0.4
 attrs==24.3.0
 babel==2.16.0
-# beautifulsoup4==4.12.3  # Commented out as it's often not needed in Django REST APIs
-# billiard==4.2.1  # Commented out, usually not needed unless using multiprocessing
-# binaryornot==0.4.4  # Commented out, not commonly used
-# bleach==6.2.0  # Commented out, only needed for HTML sanitization
 celery==5.4.0
 certifi==2024.12.14
 cffi==1.17.1
@@ -24,87 +20,39 @@ click-plugins==1.1.1
 click-repl==0.3.0
 colorama==0.4.6
 comm==0.2.2
-# cookiecutter==2.6.0  # Commented out, not needed for most Django projects
-# coreapi==2.3.3  # Commented out, not commonly used
-# coreschema==0.0.4  # Commented out, not commonly used
-# cron-descriptor==1.4.5  # Commented out, not commonly used
 cryptography==3.4.8
 debugpy==1.8.12
 decorator==5.1.1
-# defusedxml==0.8.0rc2  # Commented out, only needed for XML parsing
-# diff-match-patch==20241021  # Commented out, not commonly used
 Django==5.1.5
 django-allauth==65.4.1
-# django-browser-reload==1.18.0  # Commented out, not needed for REST APIs
 django-celery-beat==2.7.0
 django-cors-headers==4.6.0
 django-filter==24.3
 django-import-export==4.3.4
 django-rest-auth==0.9.5
 django-rest-passwordreset==1.5.0
-# django-rest-swagger==2.2.0  # Commented out, not commonly used
 django-tailwind==3.8.0
 django-timezone-field==7.1
 djangorestframework==3.15.2
 djangorestframework_simplejwt==5.4.0
 djoser==2.3.1
-# drf-yasg==1.21.8  # Commented out, only needed for API documentation
-# etils==1.11.0  # Commented out, not commonly used
-# executing==2.2.0  # Commented out, not commonly used
-# fastjsonschema==2.21.1  # Commented out, not commonly used
-# fqdn==1.5.1  # Commented out, not commonly used
-# fsspec==2024.12.0  # Commented out, not commonly used
-# h11==0.14.0  # Commented out, not commonly used
-# httpcore==1.0.7  # Commented out, not commonly used
-# httpx==0.28.1  # Commented out, not commonly used
 idna==3.10
 importlib_resources==6.5.2
-# inflection==0.5.1  # Commented out, not commonly used
-# ipykernel==6.29.5  # Commented out, not needed for REST APIs
-# ipython==8.31.0  # Commented out, not needed for REST APIs
-# isoduration==20.11.0  # Commented out, not commonly used
-# itypes==1.2.0  # Commented out, not commonly used
-# jedi==0.19.2  # Commented out, not commonly used
-# Jinja2==3.1.5  # Commented out, not needed unless using templates
-# json5==0.10.0  # Commented out, not commonly used
-# jsonpath-rw==1.4.0  # Commented out, not commonly used
-# jsonpointer==3.0.0  # Commented out, not commonly used
-# jsonschema==4.23.0  # Commented out, not commonly used
-# jsonschema-specifications==2024.10.1  # Commented out, not commonly used
-# jupyter-events==0.11.0  # Commented out, not needed for REST APIs
-# jupyter-lsp==2.2.5  # Commented out, not needed for REST APIs
-# jupyter_client==8.6.3  # Commented out, not needed for REST APIs
-# jupyter_core==5.7.2  # Commented out, not needed for REST APIs
-# jupyter_server==2.15.0  # Commented out, not needed for REST APIs
-# jupyter_server_terminals==0.5.3  # Commented out, not needed for REST APIs
-# jupyterlab==4.3.4  # Commented out, not needed for REST APIs
-# jupyterlab_pygments==0.3.0  # Commented out, not needed for REST APIs
-# jupyterlab_server==2.27.3  # Commented out, not needed for REST APIs
-# kaggle==1.6.17  # Commented out, not needed for REST APIs
-# kagglehub==0.3.6  # Commented out, not needed for REST APIs
 kombu==5.5.0
 Markdown==3.7
 markdown-it-py==3.0.0
 MarkupSafe==3.0.2
-# matplotlib-inline==0.1.7  # Commented out, not needed for REST APIs
-# mdurl==0.1.2  # Commented out, not commonly used
-# mistune==3.1.0  # Commented out, not commonly used
-# mlcroissant==1.0.12  # Commented out, not commonly used
 nbclient==0.10.2
 nbconvert==7.16.5
 nbformat==5.10.4
 nest-asyncio==1.6.0
-# networkx==3.4.2  # Commented out, not commonly used
 notebook==7.3.2
 notebook_shim==0.2.4
-# numpy==2.2.2  # Commented out, not commonly used
 oauthlib==3.2.2
 openapi-codec==1.3.2
 opendatasets==0.1.22
 overrides==7.7.0
 packaging==24.2
-# pandas==2.2.3  # Commented out, not commonly used
-# pandas-stubs==2.2.3.241126  # Commented out, not commonly used
 pandocfilters==1.5.1
 parso==0.8.4
 pillow==11.1.0
@@ -125,8 +73,6 @@ python-json-logger==3.2.1
 python-slugify==8.0.4
 python3-openid==3.2.0
 pytz==2024.2
-# pywin32==308  # Commented out, not needed for Linux
-# pywinpty==2.0.14  # Commented out, not needed for Linux
 PyYAML==6.0.2
 pyzmq==26.2.0
 rdflib==7.1.3
@@ -165,7 +111,6 @@ uritemplate==4.1.1
 urllib3==2.3.0
 vine==5.1.0
 wcwidth==0.2.13
-# webcolors==24.11.1  # Commented out, not commonly used
 webencodings==0.5.1
 websocket-client==1.8.0
 whitenoise==6.9.0

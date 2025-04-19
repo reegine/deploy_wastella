@@ -197,5 +197,8 @@ DJOSER = {
 # Ensure this is set to your custom User model
 AUTH_USER_MODEL = 'api.User'
 
-CELERY_BROKER_URL = 'redis://localhost:6379/0'  # Use Redis as the broker
+# CELERY_BROKER_URL = 'redis://localhost:6379/0'  # Use Redis as the broker
+CELERY_BROKER_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")  # Use Railway's Redis URL if available
+CELERY_ACCEPT_CONTENT = ['json']  # Accept content as JSON
+CELERY_TASK_SERIALIZER = 'json'  # Serialize tasks as JSON
 CELERY_TIMEZONE = 'UTC'

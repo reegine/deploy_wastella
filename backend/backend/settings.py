@@ -16,26 +16,25 @@ import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-CSRF_TRUSTED_ORIGINS= ["https://deploywastella-production.up.railway.app"]
 
+# CSRF trusted origins
+CSRF_TRUSTED_ORIGINS = ["https://deploywastella-production.up.railway.app"]
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-b_)-m-vhdgocv2^$&46lu*3gp)*nzp*h^f8ig06d)fb*)vwbcq'
+SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-b_)-m-vhdgocv2^$&46lu*3gp)*nzp*h^f8ig06d)fb*)vwbcq')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
-# INI BUTUH DI OTAK ATIK
-ALLOWED_HOSTS = ['*'] 
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '*').split(',')
 
-# INI BUTUH DI OTAK ATIK
-CORS_ALLOW_ALL_ORIGINS = True
+# CORS
+CORS_ALLOW_ALL_ORIGINS = True  # Allow all origins (you can restrict this later for production)
 
 # Application definition
-
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -44,15 +43,16 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
-    # INI BUTUH DI OTAK ATIK
-    # 'api', #ini nama app django
+    # Third-party apps
     'rest_framework',
     'rest_framework_simplejwt',
-    'rest_framework.authtoken', 
+    'rest_framework.authtoken',
     'rest_framework_simplejwt.token_blacklist',
     'djoser',
     'corsheaders',
     'django_celery_beat',
+
+    # Custom apps
     'api.apps.ApiConfig',
 ]
 
@@ -67,8 +67,6 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     "corsheaders.middleware.CorsMiddleware",
-
-
 ]
 
 ROOT_URLCONF = 'backend.urls'
@@ -91,10 +89,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'backend.wsgi.application'
 
-
 # Database
-# https://docs.djangoproject.com/en/5.1/ref/settings/#databases
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -102,10 +97,7 @@ DATABASES = {
     }
 }
 
-
 # Password validation
-# https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
-
 AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
@@ -121,89 +113,77 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 # Internationalization
-# https://docs.djangoproject.com/en/5.1/topics/i18n/
-
 LANGUAGE_CODE = 'en-us'
-
 TIME_ZONE = 'UTC'
-
 USE_I18N = True
-
 USE_TZ = True
 
-
 # Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.1/howto/static-files/
-
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / "staticfiles"
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 STORAGES = {
-    # ...
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+        "OPTIONS": {
+            "location": MEDIA_ROOT,
+        },
+    },
     "staticfiles": {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
     },
 }
 
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Default primary key field type
-# https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
-
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-
-# Configure Django REST Framework
+# Django REST Framework configuration
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': [
-        # 'rest_framework.permissions.IsAuthenticated',
         'rest_framework.permissions.AllowAny',
     ],
 }
 
-
-# Simple JWT settings (optional)
+# Simple JWT settings
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),  # Set access token lifetime
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),  # Set refresh token lifetime
-    'AUTH_HEADER_TYPES': ('Bearer',),  # Use 'Bearer' for the Authorization header
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
-# for email otp
-# Email settings
+# Email settings (for sending OTPs)
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'  # Replace with your SMTP server
+EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'mimintheresa@gmail.com'  # Replace with your email
-EMAIL_HOST_PASSWORD = 'zehs hxim zwub duhn'  # Replace with your email password
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', 'mimintheresa@gmail.com')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', 'zehs hxim zwub duhn')
 
-# Add this to your settings.py
+# Djoser settings
 DJOSER = {
-    'USER_CREATE_PASSWORD_RETYPE': True,  # Require password confirmation during registration
-    'SEND_ACTIVATION_EMAIL': False,  # Disable activation email (optional)
+    'USER_CREATE_PASSWORD_RETYPE': True,
+    'SEND_ACTIVATION_EMAIL': False,
     'SERIALIZERS': {
-        'user_create': 'api.serializers.UserSerializer',  # Use your custom serializer for user creation
-        'user': 'api.serializers.UserSerializer',  # Use your custom serializer for user details
-        'current_user': 'api.serializers.UserSerializer',  # Use your custom serializer for the current user
+        'user_create': 'api.serializers.UserSerializer',
+        'user': 'api.serializers.UserSerializer',
+        'current_user': 'api.serializers.UserSerializer',
     },
 }
 
-# Ensure this is set to your custom User model
+# Custom User model
 AUTH_USER_MODEL = 'api.User'
 
-# CELERY_BROKER_URL = 'redis://localhost:6379/0'  # Use Redis as the broker
+# Celery settings for Redis
 CELERY_BROKER_URL = os.getenv(
     "REDIS_URL",
     "rediss://:AUXTAAIjcDFjMGFhOTY2YTE2MjM0NjIzODUyYzNlY2FjOTYwYzc2ZXAxMA@subtle-condor-17875.upstash.io:6379"
-)  # Use Upstash's Redis URL if available
-CELERY_ACCEPT_CONTENT = ['json']  # Accept content as JSON
-CELERY_TASK_SERIALIZER = 'json'  # Serialize tasks as JSON
+)
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'UTC'
-
-# rediss://:AUXTAAIjcDFjMGFhOTY2YTE2MjM0NjIzODUyYzNlY2FjOTYwYzc2ZXAxMA@subtle-condor-17875.upstash.io:6379 from thsi url https://console.upstash.com/redis/9f0617aa-b14f-45ac-bfe7-d73bd2a981bf?teamid=0

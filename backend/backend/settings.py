@@ -198,7 +198,12 @@ DJOSER = {
 AUTH_USER_MODEL = 'api.User'
 
 # CELERY_BROKER_URL = 'redis://localhost:6379/0'  # Use Redis as the broker
-CELERY_BROKER_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")  # Use Railway's Redis URL if available
+CELERY_BROKER_URL = os.getenv(
+    "REDIS_URL",
+    "rediss://:AUXTAAIjcDFjMGFhOTY2YTE2MjM0NjIzODUyYzNlY2FjOTYwYzc2ZXAxMA@subtle-condor-17875.upstash.io:6379"
+)  # Use Upstash's Redis URL if available
 CELERY_ACCEPT_CONTENT = ['json']  # Accept content as JSON
 CELERY_TASK_SERIALIZER = 'json'  # Serialize tasks as JSON
 CELERY_TIMEZONE = 'UTC'
+
+# rediss://:AUXTAAIjcDFjMGFhOTY2YTE2MjM0NjIzODUyYzNlY2FjOTYwYzc2ZXAxMA@subtle-condor-17875.upstash.io:6379 from thsi url https://console.upstash.com/redis/9f0617aa-b14f-45ac-bfe7-d73bd2a981bf?teamid=0

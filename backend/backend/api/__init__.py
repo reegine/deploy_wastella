@@ -1,0 +1,1 @@
+default_app_config = 'api.apps.ApiConfig'  # Replace 'api' with your app name if different

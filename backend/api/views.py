@@ -17,6 +17,11 @@ from django.core.mail import send_mail
 from django.conf import settings
 from rest_framework.decorators import action
 
+# google
+from google.oauth2 import id_token
+from google.auth.transport import requests
+from rest_framework_simplejwt.tokens import RefreshToken
+
 
 User = get_user_model()
 
@@ -726,3 +731,35 @@ class UserExpirePointsView(generics.ListAPIView):
     def get_queryset(self):
         user_id = self.kwargs['user_id']
         return PointsExpire.objects.filter(user_id=user_id).order_by('-expired_at')  # Order by most recent first
+    
+
+# Google sign in
+from google.oauth2 import id_token
+from google.auth.transport import requests
+from django.views import View
+from django.http import JsonResponse
+import json
+from google.oauth2 import id_token
+from google.auth.transport import requests
+
+class GoogleLoginView(View):
+    def post(self, request):
+        data = json.loads(request.body)
+        id_token_from_client = data.get('id_token')
+
+        try:
+            idinfo = id_token.verify_oauth2_token(
+                id_token_from_client,
+                requests.Request(),
+                '<YOUR_WEB_CLIENT_ID>'
+            )
+
+            email = idinfo['email']
+            name = idinfo.get('name')
+
+            user, created = User.objects.get_or_create(email=email, defaults={'name': name})
+
+            return JsonResponse({'status': 'success', 'email': email})
+
+        except ValueError:
+            return JsonResponse({'status': 'error', 'message': 'Invalid token'}, status=400)

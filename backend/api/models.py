@@ -106,8 +106,6 @@ class User(AbstractBaseUser , PermissionsMixin):
         except Exception as e:
             print(f"Error in updating user level: {e}")
 
-        Leaderboard.update_leaderboard()
-
         super().save(*args, **kwargs)  # Save the user again
 
     # Methods for manual addition and subtraction of points
@@ -165,9 +163,9 @@ class Points(models.Model):
         if self.added_at is None:
             self.added_at = timezone.now()
 
-        # Automatically set expiration date to 3 months after added_at
-        if not self.expires_at:
-            self.expires_at = self.added_at + timedelta(days=90)
+        # # Automatically set expiration date to 3 months after added_at
+        # if not self.expires_at:
+        #     self.expires_at = self.added_at + timedelta(days=90)
 
         # Ensure points are synchronized with the User model
         if not self.pk:  # Only adjust User points if this is a new entry
@@ -185,8 +183,6 @@ class Points(models.Model):
             self.user.points = F('points') + self.amount
             self.user.save()
             self.user.refresh_from_db()  # Refresh the user instance to update fields
-
-        Leaderboard.update_leaderboard()
 
     # @classmethod
     # def remove_expired_points(cls):
@@ -657,23 +653,25 @@ class Leaderboard(models.Model):
 
     @classmethod
     def update_leaderboard(cls):
-        # Get users with their points
-        users = User.objects.values('id', 'points').order_by('-points')
+        """
+        Updates the leaderboard by ranking users based on their points in descending order.
+        Clears and recreates the leaderboard entries to ensure ranks are unique.
+        """
+        from django.db.models import F  # optional, for performance
 
-        rank = 1
-        for user in users:
-            try:
-                # Update or create leaderboard entry with a unique rank
-                cls.objects.update_or_create(
-                    user_id=user['id'],
-                    defaults={'user_points': user['points'], 'rank': rank},
-                )
-                rank += 1
-            except IntegrityError:
-                # Handle a rare case where rank conflicts occur
-                cls.resolve_rank_conflicts()
-                cls.update_leaderboard()
-                break
+        # Get all users ordered by points
+        users = User.objects.order_by('-points')
+
+        # Clear the existing leaderboard to avoid conflicts
+        cls.objects.all().delete()
+
+        # Recreate leaderboard entries with unique ranks
+        for idx, user in enumerate(users, start=1):
+            cls.objects.create(
+                user=user,
+                user_points=user.points,
+                rank=idx
+            )
 
     @classmethod
     def resolve_rank_conflicts(cls):

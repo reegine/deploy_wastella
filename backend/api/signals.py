@@ -3,6 +3,7 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from .models import User, AchievementList, UserAchievement, Donation, UserMissionDataDays, UserMissionDataWeeks, Leaderboard
 from django.db.models import F
+from .models import *
 
 
 @receiver(post_save, sender=User)
@@ -68,3 +69,7 @@ def update_mission_data_on_leaderboard_change(sender, instance, created, **kwarg
     weekly_data = UserMissionDataWeeks.objects.filter(user=instance.user).first()
     if weekly_data:
         weekly_data.save()
+
+@receiver(post_save, sender=Points)
+def update_leaderboard_on_point_change(sender, instance, **kwargs):
+    Leaderboard.update_leaderboard()

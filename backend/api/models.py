@@ -106,6 +106,8 @@ class User(AbstractBaseUser , PermissionsMixin):
         except Exception as e:
             print(f"Error in updating user level: {e}")
 
+        Leaderboard.update_leaderboard()
+
         super().save(*args, **kwargs)  # Save the user again
 
     # Methods for manual addition and subtraction of points
@@ -120,6 +122,7 @@ class User(AbstractBaseUser , PermissionsMixin):
         self.points = F('points') + amount
         self.save()
         self.refresh_from_db()
+        Leaderboard.update_leaderboard()
 
     def subtract_points(self, amount, reason=None):
         """
@@ -134,6 +137,7 @@ class User(AbstractBaseUser , PermissionsMixin):
         self.points = F('points') - amount
         self.save()
         self.refresh_from_db()
+        Leaderboard.update_leaderboard()
 
     def expire_points(self):
         """
@@ -169,6 +173,8 @@ class Points(models.Model):
         if not self.pk:  # Only adjust User points if this is a new entry
             self.update_user_points()
 
+        Leaderboard.update_leaderboard()
+
         super().save(*args, **kwargs)
 
     def update_user_points(self):
@@ -179,6 +185,8 @@ class Points(models.Model):
             self.user.points = F('points') + self.amount
             self.user.save()
             self.user.refresh_from_db()  # Refresh the user instance to update fields
+
+        Leaderboard.update_leaderboard()
 
     # @classmethod
     # def remove_expired_points(cls):

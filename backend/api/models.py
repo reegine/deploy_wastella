@@ -44,8 +44,7 @@ class User(AbstractBaseUser , PermissionsMixin):
         ("Mandiri", "Mandiri"),
         ("BRI", "BRI")
     ]
-
-    # id = models.CharField(max_length=255, primary_key=True)
+    id = models.AutoField(primary_key=True)
     username = models.CharField(max_length=255, unique=True)
     name = models.CharField(max_length=255, blank=True, null=True)
     email = models.EmailField(unique=True)
@@ -81,29 +80,33 @@ class User(AbstractBaseUser , PermissionsMixin):
     def save(self, *args, **kwargs):
         is_new = self._state.adding  # Check if this is a new user
         
-        super().save(*args, **kwargs)  # Save the user first
+        # super().save(*args, **kwargs)  # Save the user first
         
-        if is_new:
-            # Create mission data for new user
-            UserMissionDataDays.create_for_user(self)
-            UserMissionDataWeeks.create_for_user(self)
-            
-            # Update the leaderboard
-            Leaderboard.update_leaderboard()
+        # if is_new:
+        #     try:
+        #         print(f"Creating mission data for new user: {self}")
+        #         UserMissionDataDays.create_for_user(self)
+        #         UserMissionDataWeeks.create_for_user(self)
+        #         Leaderboard.update_leaderboard()
+        #     except Exception as e:
+        #         print(f"Error in creating related data during user creation: {e}")
         
         # Automatically update the user's level based on total_xp
-        if 0 <= self.total_xp < 100:
-            self.level = "Level 1"
-        elif 100 <= self.total_xp < 200:
-            self.level = "Level 2"
-        elif 200 <= self.total_xp < 300:
-            self.level = "Level 3"
-        elif 300 <= self.total_xp < 400:
-            self.level = "Level 4"
-        elif 400 <= self.total_xp <= 500:
-            self.level = "Level 5"
+        try:
+            if 0 <= self.total_xp < 100:
+                self.level = "Level 1"
+            elif 100 <= self.total_xp < 200:
+                self.level = "Level 2"
+            elif 200 <= self.total_xp < 300:
+                self.level = "Level 3"
+            elif 300 <= self.total_xp < 400:
+                self.level = "Level 4"
+            elif 400 <= self.total_xp <= 500:
+                self.level = "Level 5"
+        except Exception as e:
+            print(f"Error in updating user level: {e}")
 
-        super().save(*args, **kwargs)  # Save the user
+        super().save(*args, **kwargs)  # Save the user again
 
     # Methods for manual addition and subtraction of points
     def add_points(self, amount, reason=None):
@@ -842,49 +845,43 @@ class UserMissionDataDays(models.Model):
     
     @classmethod
     def create_for_user(cls, user):
-        # Create a new instance for the user
-        instance = cls(user=user)
-        instance.reset_date = timezone.now() + timedelta(days=1)  # Set the reset date
-        instance.save()  # Save the instance to the database
-        return instance
+        try:
+            if not user:
+                raise ValueError("User cannot be None when creating UserMissionDataDays.")
+            instance = cls(user=user)
+            instance.reset_date = timezone.now() + timedelta(days=1)
+            instance.save()
+            print(f"UserMissionDataDays created for user {user.username}")
+            return instance
+        except Exception as e:
+            print(f"Error creating UserMissionDataDays for {user.username}: {e}")
+            raise
 
+        
     def save(self, *args, **kwargs):
-        # Get current leaderboard rank
-        leaderboard_entry = Leaderboard.objects.filter(user=self.user).first()
-        if leaderboard_entry:
-            self.current_leaderboard_rank = leaderboard_entry.rank
+        try:
+            leaderboard_entry = Leaderboard.objects.filter(user=self.user).first()
+            if leaderboard_entry:
+                self.current_leaderboard_rank = leaderboard_entry.rank
 
-        # Calculate reset_date (3 days after last_reset_at)
-        if not self.reset_date or timezone.now() >= self.reset_date:
-            self.last_reset_at = timezone.now()
-            self.reset_date = self.last_reset_at + timedelta(days=3)
-            # Reset mission progress fields
-            self.total_videos_watched = 0
-            self.current_leaderboard_rank = leaderboard_entry.rank if leaderboard_entry else 0
-            self.last_donate_date = None
-            self.total_donation_count = 0
-        else:
-            # Check if user and dates are not None before querying
-            if self.user and self.last_reset_at and self.reset_date:
-                valid_donation = Donation.objects.filter(
+            # Calculate reset_date (1 day after last_reset_at)
+            if not self.reset_date or timezone.now() >= self.reset_date:
+                self.last_reset_at = timezone.now()
+                self.reset_date = self.last_reset_at + timedelta(days=1)
+                self.total_videos_watched = 0
+                self.current_leaderboard_rank = leaderboard_entry.rank if leaderboard_entry else 0
+                self.last_donate_date = None
+                self.total_donation_count = 0
+            else:
+                donations = Donation.objects.filter(
                     user=self.user,
-                    status='Success',
+                    status='success',
                     created_at__gte=self.last_reset_at,
                     created_at__lte=self.reset_date
-                ).order_by('-created_at').first()
-                
-                if valid_donation:
-                    self.last_donate_date = valid_donation.created_at
-            else:
-                self.last_donate_date = None  # Handle None case
-            
-            self.total_donation_count = Donation.objects.filter(
-                user=self.user,
-                status='success',
-                created_at__gte=self.last_reset_at,
-                created_at__lte=self.reset_date
-            ).count()
-
+                )
+                self.total_donation_count = donations.count()
+        except Exception as e:
+            print(f"Error in saving UserMissionDataDays for {self.user.username}: {e}")
         super().save(*args, **kwargs)
 
 class UserMissionDataWeeks(models.Model):
@@ -902,6 +899,8 @@ class UserMissionDataWeeks(models.Model):
 
     @classmethod
     def create_for_user(cls, user):
+        if not user:
+            raise ValueError("User cannot be None when creating UserMissionDataDays.")
         # Create a new instance for the user
         instance = cls(user=user)
         instance.reset_date = timezone.now() + timedelta(weeks=1)  # Set the reset date

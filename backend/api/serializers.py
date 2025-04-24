@@ -411,3 +411,6 @@ class PointsExpireListSerializer(serializers.ModelSerializer):
     class Meta:
         model = PointsExpire
         fields = '__all__'
+
+class GoogleLoginSerializer(serializers.Serializer):
+    id_token = serializers.CharField(required=True)

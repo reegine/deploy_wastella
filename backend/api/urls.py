@@ -72,8 +72,10 @@ urlpatterns = [
     path('notifications/all-is-read/', NotificationViewSet.as_view({'get': 'all_is_read'}), name='all_is_read'),
     path('users/<int:user_id>/points-history/', UserPointsHistoryView.as_view(), name='user_points_history'),
     path('users/<int:user_id>/expired-points/', UserExpirePointsView.as_view(), name='user-expired-points'),
-    path('auth/google/', GoogleLoginView.as_view(), name='google_login'),
+    path('auth/google/login/callback/', GoogleLoginView.as_view(), name='google-login'),
+
 
 ]
 
-urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+if settings.DEBUG:
+     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

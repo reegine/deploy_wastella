@@ -4,6 +4,24 @@ from django.dispatch import receiver
 from .models import User, AchievementList, UserAchievement, Donation, UserMissionDataDays, UserMissionDataWeeks, Leaderboard
 from django.db.models import F
 
+
+@receiver(post_save, sender=User)
+def create_user_mission_data(sender, instance, created, **kwargs):
+    if created:
+        try:
+            if not instance.pk:
+                print("Instance PK not ready yet.")
+                return
+            
+            # Example: assuming you filter by user.id or email
+            if instance.email:
+                UserMissionDataDays.objects.get_or_create(user=instance)
+                UserMissionDataWeeks.objects.get_or_create(user=instance)
+                print(f"UserMissionDataDays created for user {instance.email}")
+                print(f"UserMissionDataWeeks created for user {instance.email}")
+        except Exception as e:
+            print(f"Error in signal while creating mission data: {e}")
+
 @receiver(post_save, sender=User )
 def check_achievements(sender, instance, **kwargs):
     # Get all achievements

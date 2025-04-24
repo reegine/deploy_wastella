@@ -17,11 +17,6 @@ from django.core.mail import send_mail
 from django.conf import settings
 from rest_framework.decorators import action
 
-# google
-from google.oauth2 import id_token
-from google.auth.transport import requests
-from rest_framework_simplejwt.tokens import RefreshToken
-
 
 User = get_user_model()
 
@@ -732,34 +727,309 @@ class UserExpirePointsView(generics.ListAPIView):
         user_id = self.kwargs['user_id']
         return PointsExpire.objects.filter(user_id=user_id).order_by('-expired_at')  # Order by most recent first
     
-
-# Google sign in
+from django.contrib.auth.hashers import make_password
+from django.db import transaction
+from django.utils.crypto import get_random_string
+from rest_framework import serializers, status
+from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework_simplejwt.tokens import RefreshToken
 from google.oauth2 import id_token
 from google.auth.transport import requests
-from django.views import View
-from django.http import JsonResponse
-import json
-from google.oauth2 import id_token
-from google.auth.transport import requests
+from datetime import datetime
+from django.core.files.base import ContentFile,File
+import requests as http_requests
+from urllib.parse import urlparse
+import os
+from django.db import IntegrityError
+from django.core.exceptions import ValidationError
 
-class GoogleLoginView(View):
-    def post(self, request):
-        data = json.loads(request.body)
-        id_token_from_client = data.get('id_token')
+# class GoogleLoginView(APIView):
+#     permission_classes = [AllowAny]
 
-        try:
-            idinfo = id_token.verify_oauth2_token(
-                id_token_from_client,
-                requests.Request(),
-                '<YOUR_WEB_CLIENT_ID>'
-            )
+#     def post(self, request, *args, **kwargs):
+#         serializer = GoogleLoginSerializer(data=request.data)
+#         if serializer.is_valid():
+#             id_token_string = serializer.validated_data.get('id_token')
 
-            email = idinfo['email']
-            name = idinfo.get('name')
+#             # ✅ Fix applied here
+#             if isinstance(id_token_string, list):
+#                 id_token_string = id_token_string[0] if id_token_string else ''
+#             elif not isinstance(id_token_string, str):
+#                 id_token_string = str(id_token_string)
 
-            user, created = User.objects.get_or_create(email=email, defaults={'name': name})
+#             if not id_token_string:
+#                 return Response({'error': 'No ID token provided.'}, status=status.HTTP_400_BAD_REQUEST)
 
-            return JsonResponse({'status': 'success', 'email': email})
+#             try:
+#                 print(f"Received ID token: {id_token_string}")
+#                 client_id = "333712084041-f4m3sram6rmi05a1pamqefrjbo8rse7m.apps.googleusercontent.com"
 
-        except ValueError:
-            return JsonResponse({'status': 'error', 'message': 'Invalid token'}, status=400)
+#                 idinfo = id_token.verify_oauth2_token(
+#                     id_token_string,
+#                     requests.Request(),
+#                     client_id
+#                 )
+#                 print(f"Decoded ID token info: {idinfo}")
+
+#                 exp = idinfo.get('exp')
+#                 current_time = int(datetime.now().timestamp())
+#                 print(f"Token expiration time: {exp}, Current server time: {current_time}")
+
+#                 if exp < current_time:
+#                     raise ValueError(f"Token expired, {exp} < {current_time}")
+
+#                 email = idinfo.get('email')
+#                 if not email or email.strip() == "":
+#                     raise ValueError("Email is required but was not provided.")
+#                 print(f"Validated email: {email}")
+
+#                 username = idinfo.get('email', '').split('@')[0]
+#                 if not username or username.strip() == "":
+#                     raise ValueError("Username could not be generated from email.")
+#                 print(f"Validated username: {username}")
+
+#                 given_name = idinfo.get('given_name', '') or ''
+#                 family_name = idinfo.get('family_name', '') or ''
+#                 full_name = f"{given_name} {family_name}".strip() or username
+
+#                 profile_picture_url = idinfo.get('picture')
+#                 profile_picture = None
+#                 if profile_picture_url:
+#                     try:
+#                         response = http_requests.get(profile_picture_url)
+#                         if response.status_code == 200:
+#                             file_name = os.path.basename(urlparse(profile_picture_url).path)
+#                             if not file_name or '.' not in file_name:
+#                                 file_name = f"profile_{username}.jpg"
+#                             profile_picture = ContentFile(response.content, name=file_name)
+#                             print(f"Successfully downloaded profile picture for {username}")
+#                     except Exception as e:
+#                         print(f"Error downloading profile picture: {e}")
+#                         profile_picture = None
+
+#                 if not profile_picture:
+#                     default_picture_path = os.path.join(settings.MEDIA_ROOT, 'default_profile.jpg')
+#                     try:
+#                         with open(default_picture_path, 'rb') as f:
+#                             profile_picture = File(f, name='default_profile.jpg')
+#                             print("Using default profile picture from media directory.")
+#                     except Exception as e:
+#                         print(f"Error loading default profile picture from media: {e}")
+#                         profile_picture = None
+
+#                 if not profile_picture:
+#                     print("No profile picture available; proceeding without it.")
+
+#                 with transaction.atomic():
+#                     random_password = get_random_string(length=32)
+#                     hashed_password = make_password(random_password)
+
+#                     user_defaults = {
+#                         'username': username,
+#                         'name': full_name,
+#                         'is_active': True,
+#                         'password': hashed_password,
+#                         'profile_picture': profile_picture if profile_picture else None,
+#                     }
+
+#                     # Filter out None values explicitly
+#                     user_defaults = {k: v for k, v in user_defaults.items() if v is not None}
+#                     print(f"Filtered user defaults (no None values): {user_defaults}")
+
+#                     print('ini email yg sblm get or create:', email)
+
+#                     try:
+#                         user, created = User.objects.get_or_create(
+#                             email=email,
+#                             defaults=user_defaults
+#                         )
+#                     except Exception as e:
+#                         print("Error during get_or_create:")
+#                         print(f"Email: {email}")
+#                         print(f"User defaults: {user_defaults}")
+#                         import traceback
+#                         traceback.print_exc()
+#                         raise
+
+#                 if created:
+#                     print(f"New user created: {user.username}")
+#                 else:
+#                     print(f"Existing user retrieved: {user.username}")
+
+#                 refresh = RefreshToken.for_user(user)
+#                 access = str(refresh.access_token)
+
+#                 return Response({
+#                     'refresh': str(refresh),
+#                     'access': access,
+#                     'user': {
+#                         'id': user.id,
+#                         'username': user.username,
+#                         'email': user.email,
+#                         'name': user.name,
+#                         'profile_picture': user.profile_picture.url if user.profile_picture else '',
+#                     }
+#                 }, status=status.HTTP_200_OK)
+
+#             except ValueError as e:
+#                 if "Token expired" in str(e):
+#                     return Response({'error': 'Token expired', 'details': str(e)}, status=status.HTTP_401_UNAUTHORIZED)
+#                 print(f"Token verification failed: {e}")
+#                 return Response({'error': 'Invalid token', 'details': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+#             except (IntegrityError, ValidationError) as e:
+#                 print(f"Database error: {e}")
+#                 return Response({'error': 'Database error', 'details': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+#             except Exception as e:
+#                 print(f"Unexpected error: {e}")
+#                 import traceback
+#                 traceback.print_exc()
+#                 return Response({'error': 'Server error', 'details': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class GoogleLoginView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        serializer = GoogleLoginSerializer(data=request.data)
+        if serializer.is_valid():
+            id_token_string = serializer.validated_data.get('id_token')
+
+            if isinstance(id_token_string, list):
+                id_token_string = id_token_string[0] if id_token_string else ''
+            elif not isinstance(id_token_string, str):
+                id_token_string = str(id_token_string)
+
+            if not id_token_string:
+                return Response({'error': 'No ID token provided.'}, status=status.HTTP_400_BAD_REQUEST)
+
+            try:
+                print(f"Received ID token: {id_token_string}")
+                client_id = "333712084041-f4m3sram6rmi05a1pamqefrjbo8rse7m.apps.googleusercontent.com"
+
+                idinfo = id_token.verify_oauth2_token(
+                    id_token_string,
+                    requests.Request(),
+                    client_id
+                )
+                print(f"Decoded ID token info: {idinfo}")
+
+                exp = idinfo.get('exp')
+                current_time = int(datetime.now().timestamp())
+                print(f"Token expiration time: {exp}, Current server time: {current_time}")
+
+                if exp < current_time:
+                    raise ValueError(f"Token expired, {exp} < {current_time}")
+
+                email = idinfo.get('email')
+                if not email or email.strip() == "":
+                    raise ValueError("Email is required but was not provided.")
+                print(f"Validated email: {email}")
+
+                username = idinfo.get('email', '').split('@')[0]
+                if not username or username.strip() == "":
+                    raise ValueError("Username could not be generated from email.")
+                print(f"Validated username: {username}")
+
+                given_name = idinfo.get('given_name', '') or ''
+                family_name = idinfo.get('family_name', '') or ''
+                full_name = f"{given_name} {family_name}".strip() or username
+
+                profile_picture_url = idinfo.get('picture')
+                profile_picture = None
+                if profile_picture_url:
+                    try:
+                        response = http_requests.get(profile_picture_url)
+                        if response.status_code == 200:
+                            file_name = os.path.basename(urlparse(profile_picture_url).path)
+                            if not file_name or '.' not in file_name:
+                                file_name = f"profile_{username}.jpg"
+                            profile_picture = ContentFile(response.content, name=file_name)
+                            print(f"Successfully downloaded profile picture for {username}")
+                    except Exception as e:
+                        print(f"Error downloading profile picture: {e}")
+                        profile_picture = None
+
+                if not profile_picture:
+                    default_picture_path = os.path.join(settings.MEDIA_ROOT, 'default_profile.jpg')
+                    try:
+                        with open(default_picture_path, 'rb') as f:
+                            profile_picture = File(f, name='default_profile.jpg')
+                            print("Using default profile picture from media directory.")
+                    except Exception as e:
+                        print(f"Error loading default profile picture from media: {e}")
+                        profile_picture = None
+
+                if not profile_picture:
+                    print("No profile picture available; proceeding without it.")
+
+                with transaction.atomic():
+                    random_password = get_random_string(length=32)
+                    hashed_password = make_password(random_password)
+
+                    user_defaults = {
+                        'username': username,
+                        'name': full_name,
+                        'is_active': True,
+                        'password': hashed_password,
+                        'profile_picture': profile_picture if profile_picture else None,
+                    }
+
+                    # Filter out None values explicitly
+                    user_defaults = {k: v for k, v in user_defaults.items() if v is not None}
+                    print(f"Filtered user defaults (no None values): {user_defaults}")
+
+                    print('Email before get_or_create:', email)
+
+                    existing_user = User.objects.filter(email=email).first()
+                    print("Existing user ID:", existing_user.id if existing_user else "No user yet")
+
+                    try:
+                        user, created = User.objects.get_or_create(
+                            email=email,
+                            defaults=user_defaults
+                        )
+                    except Exception as e:
+                        print("Error during get_or_create:")
+                        print(f"Email: {email}")
+                        print(f"User  defaults: {user_defaults}")
+                        import traceback
+                        traceback.print_exc()
+                        raise
+
+                if created:
+                    print(f"New user created: {user.username}")
+                else:
+                    print(f"Existing user retrieved: {user.username}")
+
+                refresh = RefreshToken.for_user(user)
+                access = str(refresh.access_token)
+
+                return Response({
+                    'refresh': str(refresh),
+                    'access': access,
+                    'user': {
+                        'id': user.id,
+                        'username': user.username,
+                        'email': user.email,
+                        'name': user.name,
+                        'profile_picture': user.profile_picture.url if user.profile_picture else '',
+                    }
+                }, status=status.HTTP_200_OK)
+
+            except ValueError as e:
+                if "Token expired" in str(e):
+                    return Response({'error': 'Token expired', 'details': str(e)}, status=status.HTTP_401_UNAUTHORIZED)
+                print(f"Token verification failed: {e}")
+                return Response({'error': 'Invalid token', 'details': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            except (IntegrityError, ValidationError) as e:
+                print(f"Database error: {e}")
+                return Response({'error': 'Database error', 'details': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            except Exception as e:
+                print(f"Unexpected error: {e}")
+                import traceback
+                traceback.print_exc()
+                return Response({'error': 'Server error', 'details': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

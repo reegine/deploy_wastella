@@ -18,24 +18,44 @@ def update_failed_donations():
 
 @shared_task
 def reset_daily_missions():
-    for daily_data in UserMissionDataDays.objects.all():
-        if now() >= daily_data.reset_date:
-            daily_data.last_reset_at = now()
-            daily_data.reset_date = daily_data.last_reset_at + timedelta(days=1)
-            daily_data.total_videos_watched = 0
-            daily_data.total_donation_count = 0
-            daily_data.save()
+    """Reset daily mission data and progress."""
+    print("Resetting daily missions...")
+    
+    # Reset mission data
+    UserMissionDataDays.objects.all().update(
+        total_videos_watched=0,
+        total_donation_count=0,
+        last_reset_at=timezone.now(),
+        reset_date=timezone.now() + timedelta(days=1)
+    )
+    
+    # Reset mission progress
+    MissionProgress.objects.filter(mission_id__type='daily').update(
+        mission_progress=0,
+        status='Ongoing',
+        processed=False
+    )
 
 
 @shared_task
 def reset_weekly_missions():
-    for weekly_data in UserMissionDataWeeks.objects.all():
-        if now() >= weekly_data.reset_date:
-            weekly_data.last_reset_at = now()
-            weekly_data.reset_date = weekly_data.last_reset_at + timedelta(weeks=1)
-            weekly_data.total_videos_watched = 0
-            weekly_data.total_donation_count = 0
-            weekly_data.save()
+    """Reset weekly mission data and progress."""
+    print("Resetting weekly missions...")
+    
+    # Reset mission data
+    UserMissionDataWeeks.objects.all().update(
+        total_videos_watched=0,
+        total_donation_count=0,
+        last_reset_at=timezone.now(),
+        reset_date=timezone.now() + timedelta(weeks=1)
+    )
+    
+    # Reset mission progress
+    MissionProgress.objects.filter(mission_id__type='weekly').update(
+        mission_progress=0,
+        status='Ongoing',
+        processed=False
+    )
 
 @shared_task
 def reset_daily_mission_progress():
@@ -56,26 +76,38 @@ def reset_weekly_mission_progress():
         progress.status = 'Ongoing'
         progress.save()
 
+# @shared_task
+# def update_mission_progress():
+#     """Update mission progress for all ongoing missions."""
+#     print("Executing update_mission_progress task...")  # Debug log
+#     mission_progresses = MissionProgress.objects.filter(status='Ongoing')
+
+#     for progress in mission_progresses:
+#         print(f"Updating mission progress for user: {progress.user.username}, mission: {progress.mission_id.id}")
+        
+#         if progress.mission_id.type == 'daily':
+#             daily_data = UserMissionDataDays.objects.filter(user=progress.user).first()
+#             if daily_data:
+#                 progress.mission_progress = progress.get_progress_based_on_detail_type(daily_data)
+#         elif progress.mission_id.type == 'weekly':
+#             weekly_data = UserMissionDataWeeks.objects.filter(user=progress.user).first()
+#             if weekly_data:
+#                 progress.mission_progress = progress.get_progress_based_on_detail_type(weekly_data)
+        
+#         # Save the updated progress
+#         progress.save()
+
 @shared_task
 def update_mission_progress():
-    """Update mission progress for all ongoing missions."""
-    print("Executing update_mission_progress task...")  # Debug log
-    mission_progresses = MissionProgress.objects.filter(status='Ongoing')
-
-    for progress in mission_progresses:
-        print(f"Updating mission progress for user: {progress.user.username}, mission: {progress.mission_id.id}")
-        
-        if progress.mission_id.type == 'daily':
-            daily_data = UserMissionDataDays.objects.filter(user=progress.user).first()
-            if daily_data:
-                progress.mission_progress = progress.get_progress_based_on_detail_type(daily_data)
-        elif progress.mission_id.type == 'weekly':
-            weekly_data = UserMissionDataWeeks.objects.filter(user=progress.user).first()
-            if weekly_data:
-                progress.mission_progress = progress.get_progress_based_on_detail_type(weekly_data)
-        
-        # Save the updated progress
-        progress.save()
+    """Update and evaluate all mission progress."""
+    print("Starting mission progress update...")
+    
+    # Process all ongoing missions
+    for progress in MissionProgress.objects.filter(status='Ongoing'):
+        try:
+            progress.save()  # This will trigger evaluation and rewards
+        except Exception as e:
+            print(f"Error updating mission {progress.id}: {e}")
 
 
 @shared_task

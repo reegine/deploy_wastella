@@ -151,7 +151,7 @@ class MissionProgressSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = MissionProgress
-        fields = ['id', 'mission_id', 'mission_progress', 'status', 'updated_at', 'user']  # Include both user and mission
+        fields =  '__all__'  # Include both user and mission
 
 class MissionProgressDetailSerializer(serializers.ModelSerializer):
     mission_id = MissionListSerializer(read_only=True)  # Nest the MissionListSerializer

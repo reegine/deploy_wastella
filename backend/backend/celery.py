@@ -65,3 +65,28 @@ def setup_periodic_tasks(sender, **kwargs):
         name='Reset weekly missions data'
     )
 
+
+
+app.conf.beat_schedule = {
+    # Mission progress updates (every 30 seconds)
+    'update-mission-progress': {
+        'task': 'api.tasks.update_mission_progress',
+        'schedule': 30.0,
+    },
+    # Daily reset (midnight)
+    'reset-daily-missions': {
+        'task': 'api.tasks.reset_daily_missions',
+        'schedule': crontab(hour=0, minute=0),
+    },
+    # Weekly reset (Sunday midnight)
+    'reset-weekly-missions': {
+        'task': 'api.tasks.reset_weekly_missions',
+        'schedule': crontab(day_of_week=0, hour=0, minute=0),
+    },
+    # Leaderboard updates (every hour)
+    'update-leaderboard': {
+        'task': 'api.tasks.update_leaderboard_task',
+        'schedule': crontab(minute=0, hour='*'),
+    },
+}
+

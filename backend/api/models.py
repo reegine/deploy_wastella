@@ -7,6 +7,8 @@ from django.db.models import F, Window
 from django.db.models.functions import Rank
 from django.core.exceptions import ValidationError
 from django.utils.timezone import now
+from django.db.models.signals import post_save
+
 
 class UserManager(BaseUserManager):
     def create_user(self, username, email, password=None, **extra_fields):
@@ -159,22 +161,36 @@ class Points(models.Model):
     is_addition = models.BooleanField()
 
     def save(self, *args, **kwargs):
-        # Set added_at to now if it is None
-        if self.added_at is None:
-            self.added_at = timezone.now()
+        # Recursion guard - skip if we're already in a save
+        if hasattr(self, '_already_saving'):
+            return
+            
+        try:
+            self._already_saving = True
+            
+            # Set added_at to now if it is None
+            if self.added_at is None:
+                self.added_at = timezone.now()
 
-        # # Automatically set expiration date to 3 months after added_at
-        # if not self.expires_at:
-        #     self.expires_at = self.added_at + timedelta(days=90)
+            # Ensure points are synchronized with the User model
+            if not self.pk:  # Only adjust User points if this is a new entry
+                self.update_user_points()
 
-        # Ensure points are synchronized with the User model
-        if not self.pk:  # Only adjust User points if this is a new entry
-            self.update_user_points()
+            # Use update_fields to only save changed fields if specified
+            update_fields = kwargs.get('update_fields', None)
+            
+            # Save the Points instance
+            super().save(*args, **kwargs)
+            
+            # Update leaderboard after saving, but only if this isn't a partial update
+            if update_fields is None or 'amount' in update_fields:
+                Leaderboard.update_leaderboard()
+                
+        finally:
+            # Always clean up our recursion guard
+            del self._already_saving
 
-        Leaderboard.update_leaderboard()
-
-        super().save(*args, **kwargs)
-
+            
     def update_user_points(self):
         """
         Add or subtract points from the associated user when a Points instance is created.
@@ -500,31 +516,102 @@ class MissionProgress(models.Model):
     assigned_at = models.DateTimeField(auto_now=True)
     processed = models.BooleanField(default=False)  # Tracks if points/XP have been added
 
-    def save(self, *args, **kwargs):
-        # Determine mission progress based on type and detail_type
-        self.evaluate_progress()
+    # def save(self, *args, **kwargs):
+    #     # Determine mission progress based on type and detail_type
+    #     self.evaluate_progress()
 
-        # Check if mission is completed
+    #     # Check if mission is completed
+    #     if self.mission_progress >= self.mission_id.mission_target:
+    #         self.status = 'Completed'
+
+    #         # Add points and XP only if not already processed
+    #         if not self.processed:
+    #             self.add_points_and_xp()
+    #             self.processed = True  # Mark as processed
+
+    #     super().save(*args, **kwargs)
+
+    def save(self, *args, **kwargs):
+        """Simplified save that avoids recursion"""
+        # Only update status if needed
         if self.mission_progress >= self.mission_id.mission_target:
             self.status = 'Completed'
-
-            # Add points and XP only if not already processed
-            if not self.processed:
-                self.add_points_and_xp()
-                self.processed = True  # Mark as processed
-
+            
         super().save(*args, **kwargs)
 
     def evaluate_progress(self):
-        """Evaluate mission progress based on type and detail_type."""
+        print(f"Evaluating progress for user {self.user.id}, mission {self.mission_id.id}")
+        
+        data_source = None
         if self.mission_id.type == 'daily':
-            daily_data = UserMissionDataDays.objects.filter(user=self.user).first()
-            if daily_data:
-                self.mission_progress = self.get_progress_based_on_detail_type(daily_data)
+            data_source = UserMissionDataDays.objects.filter(user=self.user).first()
+            print(f"Daily data source: {data_source.total_videos_watched if data_source else 'None'}")
         elif self.mission_id.type == 'weekly':
-            weekly_data = UserMissionDataWeeks.objects.filter(user=self.user).first()
-            if weekly_data:
-                self.mission_progress = self.get_progress_based_on_detail_type(weekly_data)
+            data_source = UserMissionDataWeeks.objects.filter(user=self.user).first()
+            print(f"Weekly data source: {data_source.total_videos_watched if data_source else 'None'}")
+
+        if data_source:
+            if self.mission_id.detail_type == 'video':
+                self.mission_progress = data_source.total_videos_watched
+                print(f"Updated video progress to {self.mission_progress}")
+            elif self.mission_id.detail_type == 'donate':
+                self.mission_progress = data_source.total_donation_count
+            elif self.mission_id.detail_type == 'leaderboard':
+                self.mission_progress = 1 if (data_source.current_leaderboard_rank <= 
+                                             self.mission_id.mission_target) else 0
+        else:
+            print(f"No data source found for {self.mission_id.type} mission")
+    
+    def check_completion(self):
+        """Check if mission is completed and reward points/XP if needed."""
+        target = self.mission_id.mission_target
+        print(f"Checking completion: progress={self.mission_progress}, target={target}")
+        
+        if self.mission_progress >= target and self.status != 'Completed':
+            print(f"Mission completed! Progress: {self.mission_progress}/{target}")
+            self.status = 'Completed'
+            
+            if not self.processed:
+                print("Processing rewards...")
+                self.reward_user()
+                self.processed = True
+                return True
+        return False
+    
+    def reward_user(self):
+        """Reward user without triggering full saves"""
+        try:
+            print(f"Rewarding user {self.user.id}")
+            
+            # Use bulk_create to avoid triggering signals
+            Point = Points._meta.model
+            Points._default_manager.bulk_create([
+                Point(
+                    user=self.user,
+                    amount=self.mission_id.points,
+                    reason=f"Mission completed: {self.mission_id.mission_description}",
+                    is_addition=True,
+                    is_subtract=False
+                )
+            ])
+            
+            # 2. Add XP (more reliable method)
+            user = User.objects.get(id=self.user.id)
+            user.total_xp += self.mission_id.xp
+            user.save(update_fields=['total_xp'])
+            user.refresh_from_db()
+            
+            print(f"User {user.id} now has {user.total_xp} XP")  # Debug print
+            
+            # Create notification
+            Notification.objects.create(
+                user=self.user,
+                message=f"You earned {self.mission_id.points} points!",
+                type="Mission Reward"
+            )
+        except Exception as e:
+            print(f"Error rewarding user: {str(e)}")
+            raise
 
     def get_progress_based_on_detail_type(self, data):
         """Get mission progress based on the detail type."""
@@ -848,6 +935,7 @@ class UserMissionDataDays(models.Model):
 
     class Meta:
         verbose_name_plural = "User  Mission Data (Daily)"
+
     
     @classmethod
     def create_for_user(cls, user):

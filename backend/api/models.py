@@ -92,6 +92,11 @@ class User(AbstractBaseUser , PermissionsMixin):
         #         Leaderboard.update_leaderboard()
         #     except Exception as e:
         #         print(f"Error in creating related data during user creation: {e}")
+
+        # Set name to username if name is empty
+        if not self.name and self.username:
+            self.name = self.username
+            print(f"DEBUG: Model-level name assignment: {self.username} -> {self.name}")
         
         # Automatically update the user's level based on total_xp
         try:

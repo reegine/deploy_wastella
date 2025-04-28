@@ -40,6 +40,9 @@ class CustomUserCreateSerializer(UserCreateSerializer):
         # Set default values for gender and level
         validated_data['gender'] = validated_data.get('gender', "Prefer Not To Say")
         validated_data['level'] = validated_data.get('level', "Level 1")
+         # Only set name to username if name wasn't provided
+        if not validated_data.get('name'):
+            validated_data['name'] = validated_data['username']
         return super().create(validated_data)
 
 class CustomUserSerializer(UserSerializer):
@@ -171,7 +174,7 @@ class DonationSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class LeaderboardSerializer(serializers.ModelSerializer):
-    username = serializers.CharField(source='user.username', read_only=True)
+    username = serializers.CharField(source='user.name', read_only=True)
     profile_picture = serializers.ImageField(source='user.profile_picture', read_only=True)
 
     class Meta:

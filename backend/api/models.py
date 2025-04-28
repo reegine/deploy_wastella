@@ -366,6 +366,7 @@ class Purchase(models.Model):
     due_date = models.DateTimeField(blank=True, null=True)  # Add due_date field
 
     def save(self, *args, **kwargs):
+        old_status = None
         # Automatically set the virtual_account to the seller's virtual_account
         if not self.virtual_account:
             self.virtual_account = self.product.seller.virtual_account
@@ -380,6 +381,31 @@ class Purchase(models.Model):
         if not self.due_date:
             self.due_date = self.created_at + timedelta(hours=24)
             self.save()  # Save the object again to update the due_date
+
+        # Only after the initial save, handle status changes
+        if old_status != self.status:
+            self.handle_status_change(old_status, self.status)
+
+    def handle_status_change(self, old_status, new_status):
+        print(f"Purchase {self.pk}: status changed from {old_status} to {new_status}")
+
+        if new_status == 'Prepared By Seller':
+            Notification.objects.create(
+                user=self.user,
+                message='You have successfully ordered a product',
+                type='Success Ordered A Product'
+            )
+        elif new_status == 'Canceled':
+            Notification.objects.create(
+                user=self.user,
+                message='Order canceled',
+                type='Order Failed'
+            )
+        elif new_status == 'Success' and old_status != 'Success':
+            # Add total price to seller balance
+            seller = self.product.seller
+            seller.total_balance += (self.total_price/2)
+            seller.save()
 
     @property
     def total_price(self):

@@ -1033,3 +1033,8 @@ class GoogleLoginView(APIView):
                 traceback.print_exc()
                 return Response({'error': 'Server error', 'details': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+class PurchaseDetailView(generics.RetrieveAPIView):
+    queryset = Purchase.objects.all()
+    serializer_class = PurchaseDetailSerializer
+    lookup_field = 'id'  # Or 'pk' if you prefer

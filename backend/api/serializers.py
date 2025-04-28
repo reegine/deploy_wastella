@@ -414,3 +414,11 @@ class PointsExpireListSerializer(serializers.ModelSerializer):
 
 class GoogleLoginSerializer(serializers.Serializer):
     id_token = serializers.CharField(required=True)
+
+class PurchaseDetailSerializer(serializers.ModelSerializer):
+    product = ProductSerializer()  # Nested serializer
+    address = AddressSerializer()
+
+    class Meta:
+        model = Purchase
+        fields = '__all__'

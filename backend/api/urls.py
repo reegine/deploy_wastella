@@ -73,6 +73,7 @@ urlpatterns = [
     path('users/<int:user_id>/points-history/', UserPointsHistoryView.as_view(), name='user_points_history'),
     path('users/<int:user_id>/expired-points/', UserExpirePointsView.as_view(), name='user-expired-points'),
     path('auth/google/login/callback/', GoogleLoginView.as_view(), name='google-login'),
+    path('purchase/<int:id>/', PurchaseDetailView.as_view(), name='purchase-detail'),
 
 
 ]

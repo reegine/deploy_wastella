@@ -360,7 +360,7 @@ class SellerPurchasesView(APIView):
             return Response({'error': 'Seller not found'}, status=status.HTTP_404_NOT_FOUND)
 
         # Filter purchases where the product's seller matches the given seller_id
-        purchases = Purchase.objects.filter(product__seller_id=seller_id).select_related('product')
+        purchases = Purchase.objects.filter(product__seller_id=seller_id).select_related('product').order_by('-created_at')
         
         # Serialize the purchases with product details
         purchase_data = []

@@ -366,6 +366,7 @@ class Purchase(models.Model):
     due_date = models.DateTimeField(blank=True, null=True)  # Add due_date field
 
     def save(self, *args, **kwargs):
+        is_new = self._state.adding
         old_status = None
         # Automatically set the virtual_account to the seller's virtual_account
         if not self.virtual_account:
@@ -385,9 +386,24 @@ class Purchase(models.Model):
         # Only after the initial save, handle status changes
         if old_status != self.status:
             self.handle_status_change(old_status, self.status)
+        
+        # If this is a new purchase and status is Pending, reduce the product stock by 1
+        if is_new and self.status == 'Pending':
+            self.product.stock -= 1
+            self.product.save()
 
     def handle_status_change(self, old_status, new_status):
         print(f"Purchase {self.pk}: status changed from {old_status} to {new_status}")
+
+        # Handle stock changes when status changes
+        if new_status == 'Canceled' and self.status != 'Canceled':
+            # If purchase is being canceled, increase the stock back
+            self.product.stock += 1
+            self.product.save()
+        elif new_status == 'Success' and self.status == 'Canceled':
+            # If purchase is being marked as success after being canceled, reduce stock again
+            self.product.stock -= 1
+            self.product.save()
 
         if new_status == 'Prepared By Seller':
             Notification.objects.create(
